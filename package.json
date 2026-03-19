@@ -1,0 +1,60 @@
+{
+  "name": "homeboard",
+  "version": "1.0.0",
+  "description": "Self-hosted ambient dashboard — a DakBoard alternative",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "setup-auth": "node scripts/setup-auth.js",
+    "build": "electron-builder --mac",
+    "build:dmg": "electron-builder --mac dmg",
+    "build:win": "electron-builder --win nsis",
+    "build:win:portable": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "@fontsource/dm-mono": "^5.1.1",
+    "@fontsource/playfair-display": "^5.1.1",
+    "express": "^4.19.0",
+    "googleapis": "^144.0.0",
+    "node-ical": "^0.19.0"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.homeboard.app",
+    "productName": "HomeBoard",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ]
+    },
+    "win": {
+      "target": [
+        { "target": "nsis",     "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "services/**/*",
+      "config/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    }
+  }
+}

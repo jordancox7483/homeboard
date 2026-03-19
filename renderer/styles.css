@@ -1,0 +1,278 @@
+/* ============================================================
+   HomeBoard — Ambient Dashboard Stylesheet
+   Aesthetic: luxury automotive HUD meets editorial magazine
+   ============================================================ */
+
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:        #C9A96E;
+  --gold-dim:    #a07d46;
+  --white:       #f5f5f0;
+  --white-dim:   rgba(245,245,240,0.7);
+  --panel-bg:    rgba(10,10,12,0.60);
+  --panel-blur:  blur(18px);
+  --border:      rgba(201,169,110,0.18);
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-mono:    'DM Mono', 'Courier New', monospace;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #0a0a0c;
+  color: var(--white);
+}
+
+/* ── Background photo ── */
+#background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.bg-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 2s ease-in-out;
+}
+
+.bg-photo.active { opacity: 1; }
+
+/* Dark vignette overlay — keeps text readable */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.65) 100%),
+    linear-gradient(to bottom,
+      rgba(0,0,0,0.45) 0%,
+      transparent       30%,
+      transparent       60%,
+      rgba(0,0,0,0.60) 100%);
+}
+
+/* ── Layout zones ── */
+#top-left, #top-right, #bottom-panel {
+  position: fixed;
+  z-index: 10;
+}
+
+/* ── Top-left: Clock ── */
+#top-left {
+  top: 48px;
+  left: 56px;
+}
+
+#clock {
+  font-family: var(--font-display);
+  font-size: clamp(80px, 10vw, 130px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--white);
+  text-shadow: 0 2px 32px rgba(0,0,0,0.6);
+}
+
+#ampm {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+#date-line {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  color: var(--white-dim);
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+/* ── Top-right: Weather ── */
+#top-right {
+  top: 48px;
+  right: 56px;
+  width: 220px;
+  padding: 24px 28px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel-bg);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+}
+
+.weather-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.weather-temp {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1;
+}
+
+.weather-desc {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+.weather-detail {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--white-dim);
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+/* ── Bottom panel: Calendar ── */
+#bottom-panel {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  min-height: 120px;
+  max-height: 230px;
+  padding: 20px 56px 28px;
+  background: var(--panel-bg);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* ── Google warning ── */
+.google-warning {
+  background: rgba(255, 200, 0, 0.15);
+  border: 1px solid rgba(255, 200, 0, 0.4);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: #ffd040;
+  margin-bottom: 12px;
+}
+
+.google-warning code {
+  font-family: var(--font-mono);
+  background: rgba(255,255,255,0.1);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.hidden { display: none !important; }
+
+/* ── Event list ── */
+#event-list {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 4px;
+}
+
+#event-list::-webkit-scrollbar { height: 3px; }
+#event-list::-webkit-scrollbar-track { background: transparent; }
+#event-list::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+.event-card {
+  flex: 0 0 auto;
+  min-width: 180px;
+  max-width: 220px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Colored left accent bar */
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--event-color, var(--gold));
+  border-radius: 3px 0 0 3px;
+}
+
+.event-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--event-color, var(--gold));
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+
+.event-title {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1.35;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.event-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white-dim);
+  letter-spacing: 0.06em;
+}
+
+.event-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+/* ── Photo credit ── */
+#photo-credit {
+  position: fixed;
+  bottom: 144px;
+  right: 20px;
+  z-index: 10;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  text-align: right;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Loading skeleton pulse ── */
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+
+.loading { animation: pulse 1.5s ease-in-out infinite; }
