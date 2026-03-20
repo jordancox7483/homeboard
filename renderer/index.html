@@ -35,6 +35,7 @@
     <div id="weather-temp" class="weather-temp">--°</div>
     <div id="weather-desc" class="weather-desc">Loading...</div>
     <div id="weather-detail" class="weather-detail"></div>
+    <div id="forecast-strip" class="forecast-strip hidden"></div>
     <div class="widget-resize-handle" data-widget="weather"></div>
   </div>
 
@@ -83,12 +84,12 @@
 
       <div class="sp-row">
         <label>Panel width <span id="width-val">320px</span></label>
-        <input type="range" id="width-slider" min="180" max="600" value="320" />
+        <input type="range" id="width-slider" min="180" max="1400" value="320" />
       </div>
 
       <div class="sp-row">
         <label>Card min-width <span id="cardmin-val">180px</span></label>
-        <input type="range" id="cardmin-slider" min="120" max="320" value="180" />
+        <input type="range" id="cardmin-slider" min="120" max="600" value="180" />
       </div>
 
       <div class="sp-row">
@@ -106,6 +107,36 @@
         <input type="range" id="cardheight-slider" min="0" max="200" value="0" />
       </div>
 
+      <!-- ── Weather settings ── -->
+      <div class="sp-section">Weather</div>
+
+      <div class="sp-row">
+        <label>Location <span id="location-current-label" class="location-current-label"></span></label>
+        <div class="sp-location-row">
+          <input type="text" id="location-input" placeholder="Search city…" />
+          <button id="location-search-btn" class="sp-location-search-btn">Search</button>
+        </div>
+        <div id="location-results" class="location-results hidden"></div>
+      </div>
+
+      <div class="sp-row">
+        <label>Forecast days <span id="forecast-days-val">3</span></label>
+        <input type="range" id="forecast-days-slider" min="0" max="7" value="3" />
+      </div>
+
+      <div class="sp-row">
+        <label>Units</label>
+        <div class="toggle-group">
+          <button data-units="fahrenheit" class="toggle-btn active">°F</button>
+          <button data-units="celsius"    class="toggle-btn">°C</button>
+        </div>
+      </div>
+
+      <div class="sp-actions" style="margin-top:10px">
+        <button id="weather-save" class="sp-btn-save">Save Weather</button>
+      </div>
+
+      <!-- ── Widget positioning ── -->
       <div class="sp-row" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
         <label>Widgets</label>
         <div class="toggle-group">

@@ -117,15 +117,37 @@ async function getWeatherData() {
   log('IPC/API: getWeatherData called');
   const config = loadConfig();
   const { latitude, longitude, units } = config.weather;
+  const forecastDays = config.weather?.forecastDays ?? 3;
   const tempUnit = units === 'fahrenheit' ? 'fahrenheit' : 'celsius';
-  const url =
+  let url =
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${latitude}&longitude=${longitude}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m` +
     `&temperature_unit=${tempUnit}&wind_speed_unit=mph&timezone=auto`;
+  if (forecastDays > 0) {
+    url += `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
+           `&forecast_days=${forecastDays + 1}`;
+  }
   const text = await fetchUrl(url);
   log('IPC/API: getWeatherData OK, response length:', text.length);
   return JSON.parse(text);
+}
+
+async function geocodeLocation(query) {
+  log('IPC/API: geocodeLocation:', query);
+  const url = `https://geocoding-api.open-meteo.com/v1/search` +
+    `?name=${encodeURIComponent(query)}&count=8&language=en&format=json`;
+  const text = await fetchUrl(url);
+  const data = JSON.parse(text);
+  const results = (data.results ?? []).map(r => ({
+    name:      r.name,
+    state:     r.admin1 ?? '',
+    country:   r.country ?? '',
+    latitude:  r.latitude,
+    longitude: r.longitude,
+  }));
+  log('IPC/API: geocodeLocation returned', results.length, 'results');
+  return results;
 }
 
 async function getFlickrData() {
@@ -245,6 +267,26 @@ function startExpressServer() {
       res.json({ ok: true });
     } catch (err) {
       log('Express /api/calendar-config error:', err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  expressApp.get('/api/geocode', async (req, res) => {
+    try {
+      const q = req.query.q ?? '';
+      res.json(await geocodeLocation(q));
+    } catch (err) { log('Express /api/geocode error:', err.message); res.status(502).json({ error: err.message }); }
+  });
+
+  expressApp.post('/api/weather-config', require('express').json(), (req, res) => {
+    log('Express: POST /api/weather-config', JSON.stringify(req.body));
+    try {
+      const cfg = loadConfig();
+      cfg.weather = { ...(cfg.weather ?? {}), ...req.body };
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+      res.json({ ok: true });
+    } catch (err) {
+      log('Express /api/weather-config error:', err.message);
       res.status(500).json({ error: err.message });
     }
   });
@@ -393,6 +435,17 @@ ipcMain.handle('save-calendar-config', (_e, calendarPanel) => {
   cfg.calendarPanel = { ...(cfg.calendarPanel ?? {}), ...calendarPanel };
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
   log('IPC: save-calendar-config written OK');
+  return true;
+});
+
+ipcMain.handle('geocode', (_e, query) => geocodeLocation(query));
+
+ipcMain.handle('save-weather-config', (_e, weather) => {
+  log('IPC: save-weather-config', JSON.stringify(weather));
+  const cfg = loadConfig();
+  cfg.weather = { ...(cfg.weather ?? {}), ...weather };
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+  log('IPC: save-weather-config written OK');
   return true;
 });
 

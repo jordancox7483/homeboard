@@ -59,6 +59,22 @@ const hb = {
     if (!res.ok) throw new Error(`/api/calendar-config ${res.status}`);
     return res.json();
   },
+  async saveWeatherConfig(weather) {
+    if (isElectron) return window.api.saveWeatherConfig(weather);
+    const res = await fetch('/api/weather-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(weather),
+    });
+    if (!res.ok) throw new Error(`/api/weather-config ${res.status}`);
+    return res.json();
+  },
+  async geocode(query) {
+    if (isElectron) return window.api.geocode(query);
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error(`/api/geocode ${res.status}`);
+    return res.json();
+  },
   async saveWidgetConfig(widgets) {
     if (isElectron) return window.api.saveWidgetConfig(widgets);
     const res = await fetch('/api/widget-config', {
@@ -127,6 +143,7 @@ let activePhoto = 'a'; // which element is currently visible
   applyCalendarPanel(config.calendarPanel);
   initWidgetPositions(config.widgets);
   initSettingsPanel(config.calendarPanel);
+  initWeatherSettings(config.weather);
 
   console.log('[HomeBoard] starting data fetches');
   loadWeather();
@@ -183,7 +200,6 @@ async function loadWeather() {
     const cur = data.current;
     const code = cur.weather_code;
     const wmo = WMO[code] || { desc: 'Unknown', icon: '?' };
-    const units = config.weather?.units === 'fahrenheit' ? '°F' : '°C';
 
     document.getElementById('weather-icon').textContent = wmo.icon;
     document.getElementById('weather-temp').textContent =
@@ -193,9 +209,44 @@ async function loadWeather() {
       `Feels ${Math.round(cur.apparent_temperature)}°<br>` +
       `Wind ${Math.round(cur.wind_speed_10m)} mph<br>` +
       `Humidity ${cur.relative_humidity_2m}%`;
+
+    renderForecast(data.daily);
   } catch (err) {
     console.error('[Weather] FAILED:', err.message);
     document.getElementById('weather-desc').textContent = 'Unavailable';
+  }
+}
+
+function renderForecast(daily) {
+  const strip = document.getElementById('forecast-strip');
+  if (!strip) return;
+
+  if (!daily || !daily.time || daily.time.length === 0) {
+    strip.classList.add('hidden');
+    strip.innerHTML = '';
+    return;
+  }
+
+  strip.innerHTML = '';
+  strip.classList.remove('hidden');
+
+  // daily.time[0] is today — skip it (current conditions already shown)
+  const start = 1;
+  for (let i = start; i < daily.time.length; i++) {
+    const date    = new Date(daily.time[i] + 'T12:00:00');
+    const dayName = DAYS[date.getDay()].slice(0, 3).toUpperCase();
+    const wmo     = WMO[daily.weather_code[i]] || { icon: '?' };
+    const hi      = Math.round(daily.temperature_2m_max[i]);
+    const lo      = Math.round(daily.temperature_2m_min[i]);
+
+    const card = document.createElement('div');
+    card.className = 'forecast-day';
+    card.innerHTML =
+      `<div class="forecast-day-name">${dayName}</div>` +
+      `<div class="forecast-day-icon">${wmo.icon}</div>` +
+      `<div class="forecast-day-hi">${hi}°</div>` +
+      `<div class="forecast-day-lo">${lo}°</div>`;
+    strip.appendChild(card);
   }
 }
 
@@ -540,6 +591,130 @@ function initSettingsPanel(initialCp = {}) {
   });
 
   populate(initialCp);
+}
+
+// ---------------------------------------------------------------------------
+// Weather settings
+// ---------------------------------------------------------------------------
+
+function initWeatherSettings(initialWeather = {}) {
+  // Pending weather changes (location/forecast days/units) before Save
+  let pendingWeather = {
+    latitude:     initialWeather.latitude     ?? 36.0726,
+    longitude:    initialWeather.longitude    ?? -79.792,
+    locationName: initialWeather.locationName ?? '',
+    forecastDays: initialWeather.forecastDays ?? 3,
+    units:        initialWeather.units        ?? 'fahrenheit',
+  };
+
+  // Populate controls
+  const locLabel   = document.getElementById('location-current-label');
+  const locInput   = document.getElementById('location-input');
+  const locResults = document.getElementById('location-results');
+  const fdSlider   = document.getElementById('forecast-days-slider');
+  const fdVal      = document.getElementById('forecast-days-val');
+  if (!locInput || !fdSlider) return;
+
+  function refreshDisplay() {
+    if (locLabel) locLabel.textContent = pendingWeather.locationName || '';
+    fdSlider.value  = pendingWeather.forecastDays;
+    if (fdVal) fdVal.textContent = pendingWeather.forecastDays === 0 ? 'Off' : pendingWeather.forecastDays;
+    // Units toggles
+    document.querySelectorAll('[data-units]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.units === pendingWeather.units);
+    });
+  }
+  refreshDisplay();
+
+  // Re-populate when settings panel opens
+  document.getElementById('settings-btn')?.addEventListener('click', () => {
+    pendingWeather = {
+      latitude:     config.weather?.latitude     ?? 36.0726,
+      longitude:    config.weather?.longitude    ?? -79.792,
+      locationName: config.weather?.locationName ?? '',
+      forecastDays: config.weather?.forecastDays ?? 3,
+      units:        config.weather?.units        ?? 'fahrenheit',
+    };
+    refreshDisplay();
+  });
+
+  // Forecast days slider
+  fdSlider.addEventListener('input', () => {
+    const v = parseInt(fdSlider.value);
+    pendingWeather.forecastDays = v;
+    if (fdVal) fdVal.textContent = v === 0 ? 'Off' : v;
+  });
+
+  // Units toggle
+  document.querySelectorAll('[data-units]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingWeather.units = btn.dataset.units;
+      document.querySelectorAll('[data-units]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Location search
+  document.getElementById('location-search-btn')?.addEventListener('click', () => doSearch());
+  locInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+  async function doSearch() {
+    const q = locInput.value.trim();
+    if (!q) return;
+    locResults.innerHTML = '<div class="location-result-item" style="color:rgba(255,255,255,0.4)">Searching…</div>';
+    locResults.classList.remove('hidden');
+    try {
+      const results = await hb.geocode(q);
+      if (results.length === 0) {
+        locResults.innerHTML = '<div class="location-result-item" style="color:rgba(255,255,255,0.4)">No results found</div>';
+        return;
+      }
+      locResults.innerHTML = '';
+      results.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'location-result-item';
+        const sub = [r.state, r.country].filter(Boolean).join(', ');
+        item.innerHTML = `<div class="loc-name">${escHtml(r.name)}</div>${sub ? `<div class="loc-sub">${escHtml(sub)}</div>` : ''}`;
+        item.addEventListener('click', () => {
+          pendingWeather.latitude    = r.latitude;
+          pendingWeather.longitude   = r.longitude;
+          pendingWeather.locationName = [r.name, r.state, r.country].filter(Boolean).join(', ');
+          locInput.value = '';
+          locResults.innerHTML = '';
+          locResults.classList.add('hidden');
+          refreshDisplay();
+        });
+        locResults.appendChild(item);
+      });
+    } catch (err) {
+      console.error('[Weather] geocode failed:', err.message);
+      locResults.innerHTML = '<div class="location-result-item" style="color:rgba(255,80,80,0.8)">Search failed</div>';
+    }
+  }
+
+  // Close results when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!locResults.classList.contains('hidden') &&
+        !locResults.contains(e.target) &&
+        e.target !== locInput &&
+        e.target.id !== 'location-search-btn') {
+      locResults.classList.add('hidden');
+    }
+  });
+
+  // Save weather button
+  document.getElementById('weather-save')?.addEventListener('click', async () => {
+    config.weather = { ...(config.weather ?? {}), ...pendingWeather };
+    try {
+      await hb.saveWeatherConfig(pendingWeather);
+      document.getElementById('settings-panel')?.classList.add('hidden');
+      console.log('[Weather] config saved:', JSON.stringify(pendingWeather));
+      // Reload weather with new settings
+      loadWeather();
+    } catch (err) {
+      console.error('[Weather] save failed:', err.message);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------

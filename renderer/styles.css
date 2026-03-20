@@ -100,14 +100,61 @@ html, body {
 #top-right {
   top: 48px;
   right: 56px;
-  width: 220px;
-  padding: 24px 28px;
+  min-width: 220px;
+  max-width: 520px;
+  padding: 24px 28px 20px;
   text-align: center;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--panel-bg);
   backdrop-filter: var(--panel-blur);
   -webkit-backdrop-filter: var(--panel-blur);
+}
+
+/* ── Forecast strip ── */
+.forecast-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  justify-content: center;
+}
+
+.forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 48px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.forecast-day-name {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.forecast-day-icon { font-size: 18px; line-height: 1; }
+
+.forecast-day-hi {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white);
+  font-weight: 500;
+}
+
+.forecast-day-lo {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--white-dim);
 }
 
 .weather-icon {
@@ -471,6 +518,84 @@ html, body {
   transition: background 0.15s;
 }
 .sp-btn-save:hover { background: rgba(201,169,110,0.3); }
+
+/* ── Settings section divider ── */
+.sp-section {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  margin: 18px 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Location search ── */
+.sp-location-row {
+  display: flex;
+  gap: 6px;
+}
+
+.sp-location-row input[type="text"] {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--white);
+  outline: none;
+  letter-spacing: 0.04em;
+}
+.sp-location-row input[type="text"]::placeholder { color: rgba(255,255,255,0.3); }
+.sp-location-row input[type="text"]:focus { border-color: var(--gold-dim); }
+
+.sp-location-search-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: var(--white-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.sp-location-search-btn:hover { background: rgba(255,255,255,0.12); color: var(--white); }
+
+.location-results {
+  margin-top: 6px;
+  background: rgba(10,10,14,0.98);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.location-result-item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--white-dim);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.12s, color 0.12s;
+}
+.location-result-item:last-child { border-bottom: none; }
+.location-result-item:hover { background: rgba(201,169,110,0.12); color: var(--white); }
+.location-result-item .loc-name { color: var(--white); }
+.location-result-item .loc-sub  { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+
+.location-current-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  margin-top: 6px;
+}
 
 /* ── Day headers in calendar ── */
 .day-header {

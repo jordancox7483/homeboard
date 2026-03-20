@@ -21,7 +21,9 @@
   "weather": {
     "latitude": 36.0726,
     "longitude": -79.7920,
-    "units": "fahrenheit"
+    "units": "fahrenheit",
+    "locationName": "Greensboro, NC",
+    "forecastDays": 3
   },
   "display": {
     "kioskMode": true,
