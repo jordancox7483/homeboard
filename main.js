@@ -67,13 +67,18 @@ function loadConfig() {
 
 function publicConfig() {
   const c = loadConfig();
+  // Strip only OAuth credentials — everything else is safe to expose on the LAN
   return {
-    flickr:  { rotationIntervalSeconds: c.flickr?.rotationIntervalSeconds ?? 60 },
-    weather: { units: c.weather?.units ?? 'fahrenheit' },
-    display: {
-      calendarDaysAhead: c.display?.calendarDaysAhead ?? 30,
-      maxEvents:         c.display?.maxEvents ?? 10,
-    },
+    flickr:           { rotationIntervalSeconds: c.flickr?.rotationIntervalSeconds ?? 60 },
+    weather:          { units: c.weather?.units ?? 'fahrenheit',
+                        locationName: c.weather?.locationName ?? '',
+                        forecastDays: c.weather?.forecastDays ?? 3 },
+    display:          { calendarDaysAhead: c.display?.calendarDaysAhead ?? 30,
+                        maxEvents: c.display?.maxEvents ?? 10 },
+    calendarPanel:    c.calendarPanel    ?? {},
+    widgetVisibility: c.widgetVisibility ?? {},
+    countdowns:       c.countdowns       ?? [],
+    widgets:          c.widgets          ?? {},
   };
 }
 
