@@ -1,5 +1,7 @@
 # HomeBoard
 
+> *This README was written with the help of Claude (Anthropic's AI assistant).*
+
 A self-hosted ambient dashboard for macOS and Windows, inspired by DakBoard. Runs as an Electron app in fullscreen kiosk mode and simultaneously serves the same dashboard over the local network so any device (iPad, phone, second monitor) can open it in a browser.
 
 - Live Flickr photostream background with crossfade transitions
