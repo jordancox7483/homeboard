@@ -11,11 +11,11 @@
   "calendars": {
     "googleCalendarId": "primary",
     "publicICS": [
-      { "name": "F1",        "url": "https://ics.fixtur.es/v2/formula-1.ics",        "color": "#E8002D" },
-      { "name": "IndyCar",   "url": "https://ics.fixtur.es/v2/indycar.ics",          "color": "#0057A8" },
-      { "name": "IMSA",      "url": "https://ics.fixtur.es/v2/imsa.ics",             "color": "#00A651" },
-      { "name": "NASCAR",    "url": "https://ics.fixtur.es/v2/nascar-cup-series.ics","color": "#FFB800" },
-      { "name": "US Holidays","url": "https://www.officeholidays.com/ics-clean/usa", "color": "#888888" }
+      { "name": "F1",         "url": "https://calendar.google.com/calendar/ical/fa9bjl6tu13dd10b066stoo5do%40group.calendar.google.com/public/basic.ics", "color": "#E8002D" },
+      { "name": "IndyCar",    "url": "https://calendar.google.com/calendar/ical/hlskhf7l8ce7btind39bb9kf1o%40group.calendar.google.com/public/basic.ics", "color": "#0057A8" },
+      { "name": "IMSA",       "url": "https://calendar.google.com/calendar/ical/njulhksvo83qeoruc3nhend9js%40group.calendar.google.com/public/basic.ics", "color": "#00A651" },
+      { "name": "NASCAR",     "url": "https://calendar.google.com/calendar/ical/db8c47ne2bt9qbld2mhdabm0u8%40group.calendar.google.com/public/basic.ics", "color": "#FFB800" },
+      { "name": "US Holidays","url": "https://www.officeholidays.com/ics-clean/usa",                                                                       "color": "#888888" }
     ]
   },
   "weather": {
