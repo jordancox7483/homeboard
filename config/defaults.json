@@ -27,5 +27,14 @@
     "kioskMode": true,
     "calendarDaysAhead": 30,
     "maxEvents": 10
+  },
+  "calendarPanel": {
+    "layout": "horizontal",
+    "side": "right",
+    "opacity": 0.6,
+    "panelWidth": 320,
+    "cardMinWidth": 180,
+    "fontSize": 13,
+    "gap": 16
   }
 }

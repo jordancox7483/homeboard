@@ -47,6 +47,64 @@
   <!-- ── Photo credit ── -->
   <div id="photo-credit"></div>
 
+  <!-- ── Settings trigger ── -->
+  <button id="settings-btn" title="Calendar settings (S)">&#9881;</button>
+
+  <!-- ── Settings panel ── -->
+  <div id="settings-panel" class="hidden">
+    <div class="sp-inner">
+      <div class="sp-header">
+        <span class="sp-title">Calendar Panel</span>
+        <button id="settings-close" class="sp-close">&#10005;</button>
+      </div>
+
+      <div class="sp-row">
+        <label>Layout</label>
+        <div class="toggle-group">
+          <button data-layout="horizontal" class="toggle-btn active">Horizontal</button>
+          <button data-layout="vertical"   class="toggle-btn">Vertical</button>
+        </div>
+      </div>
+
+      <div class="sp-row side-row" style="display:none">
+        <label>Side</label>
+        <div class="toggle-group">
+          <button data-side="left"  class="toggle-btn">Left</button>
+          <button data-side="right" class="toggle-btn active">Right</button>
+        </div>
+      </div>
+
+      <div class="sp-row">
+        <label>Opacity <span id="opacity-val">60%</span></label>
+        <input type="range" id="opacity-slider" min="10" max="95" value="60" />
+      </div>
+
+      <div class="sp-row">
+        <label>Panel width <span id="width-val">320px</span></label>
+        <input type="range" id="width-slider" min="180" max="600" value="320" />
+      </div>
+
+      <div class="sp-row">
+        <label>Card min-width <span id="cardmin-val">180px</span></label>
+        <input type="range" id="cardmin-slider" min="120" max="320" value="180" />
+      </div>
+
+      <div class="sp-row">
+        <label>Font size <span id="fontsize-val">13px</span></label>
+        <input type="range" id="fontsize-slider" min="10" max="22" value="13" />
+      </div>
+
+      <div class="sp-row">
+        <label>Card gap <span id="gap-val">16px</span></label>
+        <input type="range" id="gap-slider" min="4" max="40" value="16" />
+      </div>
+
+      <div class="sp-actions">
+        <button id="settings-save" class="sp-btn-save">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

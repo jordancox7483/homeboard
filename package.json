@@ -33,6 +33,7 @@
       ]
     },
     "win": {
+      "sign": false,
       "target": [
         { "target": "nsis",     "arch": ["x64"] },
         { "target": "portable", "arch": ["x64"] }
@@ -44,14 +45,6 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     },
-    "files": [
-      "main.js",
-      "preload.js",
-      "renderer/**/*",
-      "services/**/*",
-      "config/**/*",
-      "node_modules/**/*"
-    ],
     "directories": {
       "buildResources": "build",
       "output": "dist"
