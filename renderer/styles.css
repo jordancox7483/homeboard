@@ -232,13 +232,19 @@ html, body {
 .event-card {
   flex: 0 0 auto;
   min-width: var(--cp-card-min-width, 180px);
-  max-width: 320px;
+  height: var(--cp-card-height, auto);
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
   padding: 12px 14px;
   position: relative;
   overflow: hidden;
+}
+
+/* Vertical layout: cards fill full panel width */
+#bottom-panel.layout-vertical .event-card {
+  width: 100%;
+  min-width: unset;
 }
 
 /* Colored left accent bar */
@@ -465,3 +471,66 @@ html, body {
   transition: background 0.15s;
 }
 .sp-btn-save:hover { background: rgba(201,169,110,0.3); }
+
+/* ── Day headers in calendar ── */
+.day-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding: 0 4px;
+  white-space: nowrap;
+  align-self: stretch;
+}
+.day-header::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 100%;
+  background: var(--border);
+}
+/* Vertical: full-width horizontal divider */
+#bottom-panel.layout-vertical .day-header {
+  width: 100%;
+  align-self: auto;
+  padding: 6px 0 4px;
+  border-bottom: 1px solid var(--border);
+  margin-top: 6px;
+}
+#bottom-panel.layout-vertical .day-header::after { display: none; }
+#bottom-panel.layout-vertical .day-header:first-child { margin-top: 0; }
+
+/* ── Widget drag/resize ── */
+.widget-draggable {
+  cursor: grab !important;
+  user-select: none;
+}
+.widget-draggable:active { cursor: grabbing !important; }
+
+.widget-resize-handle {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  cursor: se-resize;
+  opacity: 0.5;
+  display: none;
+}
+.widget-resize-handle::before,
+.widget-resize-handle::after {
+  content: '';
+  position: absolute;
+  background: var(--gold-dim);
+  border-radius: 1px;
+}
+.widget-resize-handle::before { width: 8px; height: 1.5px; bottom: 4px; right: 0; }
+.widget-resize-handle::after  { width: 1.5px; height: 8px; bottom: 0; right: 4px; }
+
+.widget-unlocked .widget-resize-handle { display: block; }
+.widget-unlocked { outline: 1px dashed rgba(201,169,110,0.35); outline-offset: 4px; }

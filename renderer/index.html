@@ -26,6 +26,7 @@
     <div id="clock">--:--</div>
     <div id="ampm">--</div>
     <div id="date-line">--, --- --</div>
+    <div class="widget-resize-handle" data-widget="clock"></div>
   </div>
 
   <!-- ── Top-right: Weather ── -->
@@ -34,6 +35,7 @@
     <div id="weather-temp" class="weather-temp">--°</div>
     <div id="weather-desc" class="weather-desc">Loading...</div>
     <div id="weather-detail" class="weather-detail"></div>
+    <div class="widget-resize-handle" data-widget="weather"></div>
   </div>
 
   <!-- ── Bottom: Calendar panel ── -->
@@ -97,6 +99,18 @@
       <div class="sp-row">
         <label>Card gap <span id="gap-val">16px</span></label>
         <input type="range" id="gap-slider" min="4" max="40" value="16" />
+      </div>
+
+      <div class="sp-row">
+        <label>Card height <span id="cardheight-val">Auto</span></label>
+        <input type="range" id="cardheight-slider" min="0" max="200" value="0" />
+      </div>
+
+      <div class="sp-row" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+        <label>Widgets</label>
+        <div class="toggle-group">
+          <button id="widget-lock-btn" class="toggle-btn">Unlock to move</button>
+        </div>
       </div>
 
       <div class="sp-actions">

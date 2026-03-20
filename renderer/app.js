@@ -59,6 +59,16 @@ const hb = {
     if (!res.ok) throw new Error(`/api/calendar-config ${res.status}`);
     return res.json();
   },
+  async saveWidgetConfig(widgets) {
+    if (isElectron) return window.api.saveWidgetConfig(widgets);
+    const res = await fetch('/api/widget-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(widgets),
+    });
+    if (!res.ok) throw new Error(`/api/widget-config ${res.status}`);
+    return res.json();
+  },
   async fetchWeather() {
     if (isElectron) return window.api.fetchWeather();
     const res = await fetch('/api/weather');
@@ -115,6 +125,7 @@ let activePhoto = 'a'; // which element is currently visible
 
   // Apply calendar panel layout from config
   applyCalendarPanel(config.calendarPanel);
+  initWidgetPositions(config.widgets);
   initSettingsPanel(config.calendarPanel);
 
   console.log('[HomeBoard] starting data fetches');
@@ -210,6 +221,23 @@ async function loadCalendars() {
   }
 }
 
+function dayKey(date) {
+  // Returns "YYYY-MM-DD" string for grouping
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function dayLabel(date) {
+  const today = new Date();
+  const todayKey    = dayKey(today);
+  const tomorrowKey = dayKey(new Date(today.getTime() + 86400000));
+  const key = dayKey(date);
+  if (key === todayKey)    return 'Today';
+  if (key === tomorrowKey) return 'Tomorrow';
+  const dayAbbr  = DAYS[date.getDay()].slice(0,3).toUpperCase();
+  const monAbbr  = MONTHS_SHORT[date.getMonth()].toUpperCase();
+  return `${dayAbbr} · ${monAbbr} ${date.getDate()}`;
+}
+
 function renderEvents(events) {
   const list = document.getElementById('event-list');
   list.innerHTML = '';
@@ -219,13 +247,25 @@ function renderEvents(events) {
     return;
   }
 
+  let lastKey = null;
+
   for (const ev of events) {
+    const start  = new Date(ev.start);
+    const curKey = dayKey(start);
+
+    // Insert day header when the date changes
+    if (curKey !== lastKey) {
+      lastKey = curKey;
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.textContent = dayLabel(start);
+      list.appendChild(header);
+    }
+
     const card = document.createElement('div');
     card.className = 'event-card';
     card.style.setProperty('--event-color', ev.color || '#C9A96E');
 
-    const start = new Date(ev.start);
-    const dateStr = `${MONTHS_SHORT[start.getMonth()]} ${start.getDate()}`;
     const timeStr = ev.allDay
       ? 'All Day'
       : start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -233,7 +273,6 @@ function renderEvents(events) {
     card.innerHTML = `
       <div class="event-badge">${escHtml(ev.calendar)}</div>
       <div class="event-title">${escHtml(ev.title)}</div>
-      <div class="event-date">${dateStr}</div>
       <div class="event-time">${timeStr}</div>
     `;
     list.appendChild(card);
@@ -331,6 +370,7 @@ function applyCalendarPanel(cp = {}) {
   const cardMinWidth= cp.cardMinWidth?? 180;
   const fontSize    = cp.fontSize    ?? 13;
   const gap         = cp.gap         ?? 16;
+  const cardHeight  = cp.cardHeight  ?? 0;   // 0 = auto
 
   // Layout class
   panel.classList.toggle('layout-vertical', layout === 'vertical');
@@ -343,14 +383,13 @@ function applyCalendarPanel(cp = {}) {
   panel.style.setProperty('--cp-card-min-width',cardMinWidth + 'px');
   panel.style.setProperty('--cp-font-size',    fontSize    + 'px');
   panel.style.setProperty('--cp-gap',          gap         + 'px');
+  panel.style.setProperty('--cp-card-height',  cardHeight > 0 ? cardHeight + 'px' : 'auto');
 
   // Reposition photo credit so it doesn't overlap a vertical panel
   const credit = document.getElementById('photo-credit');
   if (credit) {
     if (layout === 'vertical' && side === 'right') {
       credit.style.right  = (panelWidth + 24) + 'px';
-    } else if (layout === 'vertical' && side === 'left') {
-      credit.style.right  = '20px';
     } else {
       credit.style.right  = '20px';
     }
@@ -375,6 +414,7 @@ function initSettingsPanel(initialCp = {}) {
     const cardMin    = cp.cardMinWidth?? 180;
     const fontSize   = cp.fontSize    ?? 13;
     const gap        = cp.gap         ?? 16;
+    const cardHeight = cp.cardHeight  ?? 0;
 
     panel.querySelector('[data-layout="horizontal"]').classList.toggle('active', layout === 'horizontal');
     panel.querySelector('[data-layout="vertical"]').classList.toggle('active',   layout === 'vertical');
@@ -389,6 +429,11 @@ function initSettingsPanel(initialCp = {}) {
     setSlider('cardmin-slider',    cardMin,    'cardmin-val',    'px');
     setSlider('fontsize-slider',   fontSize,   'fontsize-val',   'px');
     setSlider('gap-slider',        gap,        'gap-val',        'px');
+    // card height: 0 means auto
+    const chEl = document.getElementById('cardheight-slider');
+    const chLb = document.getElementById('cardheight-val');
+    if (chEl) chEl.value = cardHeight;
+    if (chLb) chLb.textContent = cardHeight > 0 ? cardHeight + 'px' : 'Auto';
   }
 
   function setSlider(id, value, labelId, unit) {
@@ -409,6 +454,7 @@ function initSettingsPanel(initialCp = {}) {
       cardMinWidth: parseInt(document.getElementById('cardmin-slider').value),
       fontSize:     parseInt(document.getElementById('fontsize-slider').value),
       gap:          parseInt(document.getElementById('gap-slider').value),
+      cardHeight:   parseInt(document.getElementById('cardheight-slider').value),
     };
   }
 
@@ -460,6 +506,26 @@ function initSettingsPanel(initialCp = {}) {
     });
   });
 
+  // Card height slider (0 = auto)
+  const chSlider = document.getElementById('cardheight-slider');
+  if (chSlider) {
+    chSlider.addEventListener('input', () => {
+      const v = parseInt(chSlider.value);
+      document.getElementById('cardheight-val').textContent = v > 0 ? v + 'px' : 'Auto';
+      applyCalendarPanel(currentValues());
+    });
+  }
+
+  // Widget unlock button
+  const widgetLockBtn = document.getElementById('widget-lock-btn');
+  if (widgetLockBtn) {
+    widgetLockBtn.addEventListener('click', () => {
+      const isNowUnlocked = toggleWidgetUnlock();
+      widgetLockBtn.textContent = isNowUnlocked ? 'Lock widgets' : 'Unlock to move';
+      widgetLockBtn.classList.toggle('active', isNowUnlocked);
+    });
+  }
+
   // Save
   panel.querySelector('#settings-save').addEventListener('click', async () => {
     const vals = currentValues();
@@ -475,3 +541,134 @@ function initSettingsPanel(initialCp = {}) {
 
   populate(initialCp);
 }
+
+// ---------------------------------------------------------------------------
+// Widget positioning — clock (#top-left) and weather (#top-right)
+// ---------------------------------------------------------------------------
+
+let widgetsUnlocked = false;
+
+// Apply saved positions from config.widgets on load
+function initWidgetPositions(widgets = {}) {
+  applyWidgetPos('top-left',  widgets.clock);
+  applyWidgetPos('top-right', widgets.weather);
+}
+
+function applyWidgetPos(id, saved) {
+  if (!saved) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Switch to absolute left/top positioning once a position is saved
+  el.style.position = 'fixed';
+  if (saved.top  != null) el.style.top    = saved.top  + 'px';
+  if (saved.left != null) el.style.left   = saved.left + 'px';
+  if (saved.right != null) {
+    el.style.right = saved.right + 'px';
+    el.style.left  = 'auto';
+  } else {
+    el.style.right = 'auto';
+  }
+  if (saved.width != null) el.style.width = saved.width + 'px';
+  if (saved.height != null) el.style.height = saved.height + 'px';
+}
+
+function toggleWidgetUnlock() {
+  widgetsUnlocked = !widgetsUnlocked;
+  ['top-left','top-right'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('widget-unlocked', widgetsUnlocked);
+    el.classList.toggle('widget-draggable', widgetsUnlocked);
+  });
+  return widgetsUnlocked;
+}
+
+// Drag + resize logic
+(function attachWidgetDrag() {
+  const WIDGETS = [
+    { id: 'top-left',  key: 'clock'   },
+    { id: 'top-right', key: 'weather' },
+  ];
+
+  WIDGETS.forEach(({ id, key }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    let dragState  = null;  // { startX, startY, origLeft, origTop }
+    let resizeState = null; // { startX, startY, origW, origH }
+
+    // Convert right-relative position to left-relative once
+    function ensureLeftBased() {
+      const rect = el.getBoundingClientRect();
+      el.style.left   = rect.left + 'px';
+      el.style.top    = rect.top  + 'px';
+      el.style.right  = 'auto';
+      el.style.bottom = 'auto';
+      el.style.position = 'fixed';
+    }
+
+    // ── Drag ──
+    el.addEventListener('mousedown', (e) => {
+      if (!widgetsUnlocked) return;
+      // Don't start drag when clicking the resize handle
+      if (e.target.classList.contains('widget-resize-handle')) return;
+      e.preventDefault();
+      ensureLeftBased();
+      const rect = el.getBoundingClientRect();
+      dragState = { startX: e.clientX, startY: e.clientY, origLeft: rect.left, origTop: rect.top };
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (dragState) {
+        const dx = e.clientX - dragState.startX;
+        const dy = e.clientY - dragState.startY;
+        el.style.left = (dragState.origLeft + dx) + 'px';
+        el.style.top  = (dragState.origTop  + dy) + 'px';
+      }
+      if (resizeState) {
+        const dw = e.clientX - resizeState.startX;
+        const dh = e.clientY - resizeState.startY;
+        const newW = Math.max(80,  resizeState.origW + dw);
+        const newH = Math.max(40,  resizeState.origH + dh);
+        el.style.width  = newW + 'px';
+        el.style.height = newH + 'px';
+      }
+    });
+
+    document.addEventListener('mouseup', async () => {
+      if (!dragState && !resizeState) return;
+      dragState   = null;
+      resizeState = null;
+      if (!widgetsUnlocked) return;
+      // Save updated position
+      const rect = el.getBoundingClientRect();
+      const saved = { top: Math.round(rect.top), left: Math.round(rect.left) };
+      const w = el.style.width  ? Math.round(el.offsetWidth)  : null;
+      const h = el.style.height ? Math.round(el.offsetHeight) : null;
+      if (w) saved.width  = w;
+      if (h) saved.height = h;
+      config.widgets = config.widgets ?? {};
+      config.widgets[key] = saved;
+      try { await hb.saveWidgetConfig({ [key]: saved }); } catch(err) {
+        console.error('[Widget] save failed:', err.message);
+      }
+    });
+
+    // ── Resize ──
+    const handle = el.querySelector('.widget-resize-handle');
+    if (handle) {
+      handle.addEventListener('mousedown', (e) => {
+        if (!widgetsUnlocked) return;
+        e.preventDefault();
+        e.stopPropagation();
+        ensureLeftBased();
+        resizeState = {
+          startX: e.clientX,
+          startY: e.clientY,
+          origW:  el.offsetWidth,
+          origH:  el.offsetHeight,
+        };
+      });
+    }
+  });
+})();

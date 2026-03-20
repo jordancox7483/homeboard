@@ -249,6 +249,19 @@ function startExpressServer() {
     }
   });
 
+  expressApp.post('/api/widget-config', require('express').json(), (req, res) => {
+    log('Express: POST /api/widget-config', JSON.stringify(req.body));
+    try {
+      const cfg = loadConfig();
+      cfg.widgets = { ...(cfg.widgets ?? {}), ...req.body };
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+      res.json({ ok: true });
+    } catch (err) {
+      log('Express /api/widget-config error:', err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   const httpServer = require('http').createServer(expressApp);
   httpServer.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
@@ -380,6 +393,15 @@ ipcMain.handle('save-calendar-config', (_e, calendarPanel) => {
   cfg.calendarPanel = { ...(cfg.calendarPanel ?? {}), ...calendarPanel };
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
   log('IPC: save-calendar-config written OK');
+  return true;
+});
+
+ipcMain.handle('save-widget-config', (_e, widgets) => {
+  log('IPC: save-widget-config', JSON.stringify(widgets));
+  const cfg = loadConfig();
+  cfg.widgets = { ...(cfg.widgets ?? {}), ...widgets };
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+  log('IPC: save-widget-config written OK');
   return true;
 });
 
