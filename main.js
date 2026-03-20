@@ -240,7 +240,8 @@ function startExpressServer() {
   const expressApp = require('express')();
   log('Express: express module loaded OK');
 
-  expressApp.use(require('express').static(path.join(__dirname, 'renderer')));
+  const noCache = { etag: false, lastModified: false, setHeaders: (res) => res.setHeader('Cache-Control', 'no-store') };
+  expressApp.use(require('express').static(path.join(__dirname, 'renderer'), noCache));
   expressApp.use(
     '/node_modules/@fontsource',
     require('express').static(path.join(__dirname, 'node_modules/@fontsource'))
