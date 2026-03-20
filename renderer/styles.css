@@ -409,7 +409,13 @@ html, body {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-dim) transparent;
 }
+.sp-inner::-webkit-scrollbar { width: 3px; }
+.sp-inner::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
 
 .sp-header {
   display: flex;
@@ -659,3 +665,194 @@ html, body {
 
 .widget-unlocked .widget-resize-handle { display: block; }
 .widget-unlocked { outline: 1px dashed rgba(201,169,110,0.35); outline-offset: 4px; }
+
+/* ── Widget visibility toggle list ── */
+.widget-vis-list { display: flex; flex-direction: column; gap: 6px; }
+.widget-vis-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--white-dim);
+}
+.widget-vis-item .vis-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 5px;
+  background: rgba(255,255,255,0.04);
+  color: var(--white-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 44px;
+  text-align: center;
+}
+.widget-vis-item .vis-btn.active {
+  background: rgba(201,169,110,0.15);
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+
+/* ── Countdown widget (on-screen panel) ── */
+.countdown-widget {
+  position: fixed;
+  z-index: 10;
+  min-width: 160px;
+  padding: 18px 22px 16px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel-bg);
+  backdrop-filter: var(--panel-blur);
+  -webkit-backdrop-filter: var(--panel-blur);
+  border-left: 3px solid var(--cdw-color, var(--gold));
+}
+
+.cdw-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cdw-color, var(--gold));
+  margin-bottom: 10px;
+}
+
+.cdw-number {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 400;
+  color: var(--white);
+  line-height: 1;
+  display: block;
+}
+
+.cdw-unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  display: block;
+  margin-top: 4px;
+}
+
+.cdw-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white-dim);
+  margin-top: 4px;
+  letter-spacing: 0.06em;
+  min-height: 16px;
+}
+
+.cdw-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35);
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+/* ── Countdown list in settings ── */
+.cd-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.cd-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.cd-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cd-item-info { flex: 1; min-width: 0; }
+.cd-item-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--white);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cd-item-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+.cd-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 7px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+  color: var(--white-dim);
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.cd-btn:hover { background: rgba(255,255,255,0.1); color: var(--white); }
+.cd-btn.cd-del:hover { background: rgba(200,60,60,0.2); border-color: rgba(200,60,60,0.4); color: #f88; }
+
+/* ── Generic text/date/color inputs in settings ── */
+.sp-text-input, .sp-date-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: var(--white);
+  outline: none;
+  letter-spacing: 0.04em;
+  box-sizing: border-box;
+}
+.sp-text-input::placeholder { color: rgba(255,255,255,0.3); }
+.sp-text-input:focus, .sp-date-input:focus { border-color: var(--gold-dim); }
+.sp-date-input::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+
+.sp-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sp-color-input {
+  width: 36px; height: 28px;
+  padding: 2px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+.sp-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.sp-color-input::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+.sp-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.sp-btn-cancel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: var(--white-dim);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sp-btn-cancel:hover { background: rgba(255,255,255,0.1); color: var(--white); }

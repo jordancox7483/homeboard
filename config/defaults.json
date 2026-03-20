@@ -38,5 +38,11 @@
     "cardMinWidth": 180,
     "fontSize": 13,
     "gap": 16
-  }
+  },
+  "widgetVisibility": {
+    "clock": true,
+    "weather": true,
+    "calendar": true
+  },
+  "countdowns": []
 }

@@ -57,9 +57,12 @@
   <div id="settings-panel" class="hidden">
     <div class="sp-inner">
       <div class="sp-header">
-        <span class="sp-title">Calendar Panel</span>
+        <span class="sp-title">Settings</span>
         <button id="settings-close" class="sp-close">&#10005;</button>
       </div>
+
+      <!-- ── Calendar ── -->
+      <div class="sp-section" style="margin-top:0;padding-top:0;border-top:none">Calendar</div>
 
       <div class="sp-row">
         <label>Layout</label>
@@ -107,7 +110,11 @@
         <input type="range" id="cardheight-slider" min="0" max="200" value="0" />
       </div>
 
-      <!-- ── Weather settings ── -->
+      <div class="sp-actions">
+        <button id="settings-save" class="sp-btn-save">Save Calendar</button>
+      </div>
+
+      <!-- ── Weather ── -->
       <div class="sp-section">Weather</div>
 
       <div class="sp-row">
@@ -136,17 +143,56 @@
         <button id="weather-save" class="sp-btn-save">Save Weather</button>
       </div>
 
-      <!-- ── Widget positioning ── -->
-      <div class="sp-row" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
-        <label>Widgets</label>
-        <div class="toggle-group">
-          <button id="widget-lock-btn" class="toggle-btn">Unlock to move</button>
+      <!-- ── Widgets ── -->
+      <div class="sp-section">Widgets</div>
+
+      <div class="sp-row">
+        <label style="margin-bottom:8px">Visibility</label>
+        <div class="widget-vis-list">
+          <div class="widget-vis-item"><span>Clock</span><button class="vis-btn active" data-vis="clock">On</button></div>
+          <div class="widget-vis-item"><span>Weather</span><button class="vis-btn active" data-vis="weather">On</button></div>
+          <div class="widget-vis-item"><span>Calendar</span><button class="vis-btn active" data-vis="calendar">On</button></div>
         </div>
       </div>
 
-      <div class="sp-actions">
-        <button id="settings-save" class="sp-btn-save">Save</button>
+      <div class="sp-row" style="margin-top:10px">
+        <div class="toggle-group">
+          <button id="widget-lock-btn" class="toggle-btn">Unlock to move &amp; resize</button>
+        </div>
       </div>
+
+      <!-- ── Countdowns ── -->
+      <div class="sp-section">Countdowns</div>
+
+      <div id="cd-list" class="cd-list"></div>
+
+      <div id="cd-form" class="hidden">
+        <input type="hidden" id="cd-edit-id" />
+        <div class="sp-row">
+          <label>Title</label>
+          <input type="text" id="cd-title" class="sp-text-input" placeholder="Event name" />
+        </div>
+        <div class="sp-row">
+          <label>Target date</label>
+          <input type="date" id="cd-date" class="sp-date-input" />
+        </div>
+        <div class="sp-row">
+          <label>Accent color</label>
+          <div class="sp-color-row">
+            <input type="color" id="cd-color" class="sp-color-input" value="#C9A96E" />
+            <span id="cd-color-label" style="font-family:var(--font-mono);font-size:10px;color:var(--white-dim)">#C9A96E</span>
+          </div>
+        </div>
+        <div class="sp-form-actions">
+          <button id="cd-save-btn" class="sp-btn-save" style="flex:1">Save</button>
+          <button id="cd-cancel-btn" class="sp-btn-cancel">Cancel</button>
+        </div>
+      </div>
+
+      <div id="cd-add-row" class="sp-actions" style="margin-top:6px">
+        <button id="cd-add-btn" class="sp-btn-save">+ Add Countdown</button>
+      </div>
+
     </div>
   </div>
 

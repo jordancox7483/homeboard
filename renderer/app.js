@@ -85,6 +85,22 @@ const hb = {
     if (!res.ok) throw new Error(`/api/widget-config ${res.status}`);
     return res.json();
   },
+  async saveWidgetVisibility(v) {
+    if (isElectron) return window.api.saveWidgetVisibility(v);
+    const res = await fetch('/api/widget-visibility', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v),
+    });
+    if (!res.ok) throw new Error(`/api/widget-visibility ${res.status}`);
+    return res.json();
+  },
+  async saveCountdowns(arr) {
+    if (isElectron) return window.api.saveCountdowns(arr);
+    const res = await fetch('/api/countdowns', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(arr),
+    });
+    if (!res.ok) throw new Error(`/api/countdowns ${res.status}`);
+    return res.json();
+  },
   async fetchWeather() {
     if (isElectron) return window.api.fetchWeather();
     const res = await fetch('/api/weather');
@@ -141,9 +157,13 @@ let activePhoto = 'a'; // which element is currently visible
 
   // Apply calendar panel layout from config
   applyCalendarPanel(config.calendarPanel);
+  applyWidgetVisibility(config.widgetVisibility);
   initWidgetPositions(config.widgets);
+  renderCountdownWidgets(config.countdowns ?? []);
+  setInterval(updateAllCountdowns, 30000);
   initSettingsPanel(config.calendarPanel);
   initWeatherSettings(config.weather);
+  initWidgetManagementSettings();
 
   console.log('[HomeBoard] starting data fetches');
   loadWeather();
@@ -718,12 +738,21 @@ function initWeatherSettings(initialWeather = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Widget positioning — clock (#top-left) and weather (#top-right)
+// Widget system — visibility, drag/resize, positions
 // ---------------------------------------------------------------------------
 
 let widgetsUnlocked = false;
 
-// Apply saved positions from config.widgets on load
+function applyWidgetVisibility(v = {}) {
+  const show = (id, visible) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible === false ? 'none' : '';
+  };
+  show('top-left',     v.clock    !== false);
+  show('top-right',    v.weather  !== false);
+  show('bottom-panel', v.calendar !== false);
+}
+
 function initWidgetPositions(widgets = {}) {
   applyWidgetPos('top-left',  widgets.clock);
   applyWidgetPos('top-right', widgets.weather);
@@ -733,117 +762,306 @@ function applyWidgetPos(id, saved) {
   if (!saved) return;
   const el = document.getElementById(id);
   if (!el) return;
-  // Switch to absolute left/top positioning once a position is saved
   el.style.position = 'fixed';
-  if (saved.top  != null) el.style.top    = saved.top  + 'px';
-  if (saved.left != null) el.style.left   = saved.left + 'px';
-  if (saved.right != null) {
-    el.style.right = saved.right + 'px';
-    el.style.left  = 'auto';
-  } else {
-    el.style.right = 'auto';
-  }
-  if (saved.width != null) el.style.width = saved.width + 'px';
+  if (saved.top  != null) el.style.top  = saved.top  + 'px';
+  if (saved.left != null) { el.style.left = saved.left + 'px'; el.style.right = 'auto'; }
+  if (saved.width  != null) el.style.width  = saved.width  + 'px';
   if (saved.height != null) el.style.height = saved.height + 'px';
 }
 
 function toggleWidgetUnlock() {
   widgetsUnlocked = !widgetsUnlocked;
-  ['top-left','top-right'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.toggle('widget-unlocked', widgetsUnlocked);
+  document.querySelectorAll('#top-left, #top-right, .countdown-widget').forEach(el => {
+    el.classList.toggle('widget-unlocked',  widgetsUnlocked);
     el.classList.toggle('widget-draggable', widgetsUnlocked);
   });
   return widgetsUnlocked;
 }
 
-// Drag + resize logic
-(function attachWidgetDrag() {
-  const WIDGETS = [
-    { id: 'top-left',  key: 'clock'   },
-    { id: 'top-right', key: 'weather' },
-  ];
+// Reusable drag + resize — attaches to any widget element
+// onSave({ top, left, width?, height? }) called on mouseup
+function attachDragResize(el, onSave) {
+  let dragState   = null;
+  let resizeState = null;
 
-  WIDGETS.forEach(({ id, key }) => {
+  function ensureLeftBased() {
+    const rect = el.getBoundingClientRect();
+    el.style.left = rect.left + 'px'; el.style.top = rect.top + 'px';
+    el.style.right = 'auto'; el.style.bottom = 'auto'; el.style.position = 'fixed';
+  }
+
+  el.addEventListener('mousedown', (e) => {
+    if (!widgetsUnlocked) return;
+    if (e.target.classList.contains('widget-resize-handle')) return;
+    e.preventDefault();
+    ensureLeftBased();
+    const rect = el.getBoundingClientRect();
+    dragState = { sx: e.clientX, sy: e.clientY, ox: rect.left, oy: rect.top };
+  });
+
+  function onMove(e) {
+    if (dragState) {
+      el.style.left = (dragState.ox + e.clientX - dragState.sx) + 'px';
+      el.style.top  = (dragState.oy + e.clientY - dragState.sy) + 'px';
+    }
+    if (resizeState) {
+      el.style.width  = Math.max(120, resizeState.ow + e.clientX - resizeState.sx) + 'px';
+      el.style.height = Math.max(40,  resizeState.oh + e.clientY - resizeState.sy) + 'px';
+    }
+  }
+
+  async function onUp() {
+    if (!dragState && !resizeState) return;
+    dragState = resizeState = null;
+    if (!widgetsUnlocked) return;
+    const rect = el.getBoundingClientRect();
+    const pos  = { top: Math.round(rect.top), left: Math.round(rect.left) };
+    if (el.style.width)  pos.width  = Math.round(el.offsetWidth);
+    if (el.style.height) pos.height = Math.round(el.offsetHeight);
+    try { await onSave(pos); } catch (err) { console.error('[Widget] save error:', err.message); }
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+
+  const handle = el.querySelector('.widget-resize-handle');
+  if (handle) {
+    handle.addEventListener('mousedown', (e) => {
+      if (!widgetsUnlocked) return;
+      e.preventDefault(); e.stopPropagation();
+      ensureLeftBased();
+      resizeState = { sx: e.clientX, sy: e.clientY, ow: el.offsetWidth, oh: el.offsetHeight };
+    });
+  }
+
+  // Return cleanup so countdown widgets can detach when removed
+  return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+}
+
+// Attach drag/resize to built-in widgets after DOM ready
+(function initBuiltinWidgetDrag() {
+  [{ id: 'top-left', key: 'clock' }, { id: 'top-right', key: 'weather' }].forEach(({ id, key }) => {
     const el = document.getElementById(id);
     if (!el) return;
-
-    let dragState  = null;  // { startX, startY, origLeft, origTop }
-    let resizeState = null; // { startX, startY, origW, origH }
-
-    // Convert right-relative position to left-relative once
-    function ensureLeftBased() {
-      const rect = el.getBoundingClientRect();
-      el.style.left   = rect.left + 'px';
-      el.style.top    = rect.top  + 'px';
-      el.style.right  = 'auto';
-      el.style.bottom = 'auto';
-      el.style.position = 'fixed';
-    }
-
-    // ── Drag ──
-    el.addEventListener('mousedown', (e) => {
-      if (!widgetsUnlocked) return;
-      // Don't start drag when clicking the resize handle
-      if (e.target.classList.contains('widget-resize-handle')) return;
-      e.preventDefault();
-      ensureLeftBased();
-      const rect = el.getBoundingClientRect();
-      dragState = { startX: e.clientX, startY: e.clientY, origLeft: rect.left, origTop: rect.top };
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (dragState) {
-        const dx = e.clientX - dragState.startX;
-        const dy = e.clientY - dragState.startY;
-        el.style.left = (dragState.origLeft + dx) + 'px';
-        el.style.top  = (dragState.origTop  + dy) + 'px';
-      }
-      if (resizeState) {
-        const dw = e.clientX - resizeState.startX;
-        const dh = e.clientY - resizeState.startY;
-        const newW = Math.max(80,  resizeState.origW + dw);
-        const newH = Math.max(40,  resizeState.origH + dh);
-        el.style.width  = newW + 'px';
-        el.style.height = newH + 'px';
-      }
-    });
-
-    document.addEventListener('mouseup', async () => {
-      if (!dragState && !resizeState) return;
-      dragState   = null;
-      resizeState = null;
-      if (!widgetsUnlocked) return;
-      // Save updated position
-      const rect = el.getBoundingClientRect();
-      const saved = { top: Math.round(rect.top), left: Math.round(rect.left) };
-      const w = el.style.width  ? Math.round(el.offsetWidth)  : null;
-      const h = el.style.height ? Math.round(el.offsetHeight) : null;
-      if (w) saved.width  = w;
-      if (h) saved.height = h;
+    attachDragResize(el, async (pos) => {
       config.widgets = config.widgets ?? {};
-      config.widgets[key] = saved;
-      try { await hb.saveWidgetConfig({ [key]: saved }); } catch(err) {
-        console.error('[Widget] save failed:', err.message);
-      }
+      config.widgets[key] = pos;
+      await hb.saveWidgetConfig({ [key]: pos });
     });
-
-    // ── Resize ──
-    const handle = el.querySelector('.widget-resize-handle');
-    if (handle) {
-      handle.addEventListener('mousedown', (e) => {
-        if (!widgetsUnlocked) return;
-        e.preventDefault();
-        e.stopPropagation();
-        ensureLeftBased();
-        resizeState = {
-          startX: e.clientX,
-          startY: e.clientY,
-          origW:  el.offsetWidth,
-          origH:  el.offsetHeight,
-        };
-      });
-    }
   });
 })();
+
+// ---------------------------------------------------------------------------
+// Countdown widgets
+// ---------------------------------------------------------------------------
+
+function countdownText(targetDateStr) {
+  const target = new Date(targetDateStr + 'T00:00:00');
+  const diff   = target - new Date();
+  if (diff <= 0) {
+    const days = Math.floor(-diff / 86400000);
+    return days === 0
+      ? { number: 'TODAY', unit: '',        sub: '' }
+      : { number: days,    unit: 'DAYS AGO', sub: '' };
+  }
+  const totalH = Math.floor(diff / 3600000);
+  const days   = Math.floor(totalH / 24);
+  const hours  = totalH % 24;
+  const mins   = Math.floor((diff % 3600000) / 60000);
+  if (days > 0)  return { number: days,  unit: 'DAYS', sub: hours ? `${hours} HRS` : '' };
+  if (hours > 0) return { number: hours, unit: 'HRS',  sub: `${mins} MIN` };
+  return             { number: mins,  unit: 'MIN',  sub: '' };
+}
+
+function updateCountdownDisplay(el, cd) {
+  const target = new Date(cd.targetDate + 'T00:00:00');
+  const dateStr = target.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+  const { number, unit, sub } = countdownText(cd.targetDate);
+  el.querySelector('.cdw-title').textContent  = (cd.title || '').toUpperCase();
+  el.querySelector('.cdw-number').textContent = number;
+  el.querySelector('.cdw-unit').textContent   = unit;
+  el.querySelector('.cdw-sub').textContent    = sub;
+  el.querySelector('.cdw-date').textContent   = dateStr;
+}
+
+function createCountdownWidget(cd) {
+  const el = document.createElement('div');
+  el.className = 'countdown-widget';
+  el.id = `cdw-${cd.id}`;
+  el.style.setProperty('--cdw-color', cd.color || '#C9A96E');
+  el.style.top  = (cd.top  ?? 200) + 'px';
+  el.style.left = (cd.left ?? 100) + 'px';
+  if (cd.width)  el.style.width  = cd.width  + 'px';
+  if (cd.height) el.style.height = cd.height + 'px';
+
+  el.innerHTML =
+    `<div class="cdw-title"></div>` +
+    `<div><span class="cdw-number"></span></div>` +
+    `<div><span class="cdw-unit"></span></div>` +
+    `<div class="cdw-sub"></div>` +
+    `<div class="cdw-date"></div>` +
+    `<div class="widget-resize-handle"></div>`;
+
+  if (widgetsUnlocked) el.classList.add('widget-unlocked', 'widget-draggable');
+  updateCountdownDisplay(el, cd);
+  document.body.appendChild(el);
+
+  attachDragResize(el, async (pos) => {
+    const idx = (config.countdowns ?? []).findIndex(c => c.id === cd.id);
+    if (idx === -1) return;
+    Object.assign(config.countdowns[idx], pos);
+    await hb.saveCountdowns(config.countdowns);
+  });
+
+  return el;
+}
+
+function renderCountdownWidgets(countdowns = []) {
+  document.querySelectorAll('.countdown-widget').forEach(el => el.remove());
+  countdowns.filter(cd => cd.enabled !== false).forEach(cd => createCountdownWidget(cd));
+}
+
+function updateAllCountdowns() {
+  (config.countdowns ?? []).filter(cd => cd.enabled !== false).forEach(cd => {
+    const el = document.getElementById(`cdw-${cd.id}`);
+    if (el) updateCountdownDisplay(el, cd);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Widget management settings (visibility + countdowns)
+// ---------------------------------------------------------------------------
+
+function initWidgetManagementSettings() {
+  // ── Visibility toggles ──
+  document.querySelectorAll('[data-vis]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const key = btn.dataset.vis;
+      const nowOn = !btn.classList.contains('active');
+      btn.classList.toggle('active', nowOn);
+      btn.textContent = nowOn ? 'On' : 'Off';
+      config.widgetVisibility = config.widgetVisibility ?? {};
+      config.widgetVisibility[key] = nowOn;
+      applyWidgetVisibility(config.widgetVisibility);
+      try { await hb.saveWidgetVisibility({ [key]: nowOn }); }
+      catch (err) { console.error('[Vis] save failed:', err.message); }
+    });
+  });
+
+  // Sync toggle states when panel opens
+  document.getElementById('settings-btn')?.addEventListener('click', () => {
+    const v = config.widgetVisibility ?? {};
+    document.querySelectorAll('[data-vis]').forEach(btn => {
+      const on = v[btn.dataset.vis] !== false;
+      btn.classList.toggle('active', on);
+      btn.textContent = on ? 'On' : 'Off';
+    });
+    renderCdList();
+  });
+
+  // ── Countdown list rendering ──
+  function renderCdList() {
+    const list = document.getElementById('cd-list');
+    if (!list) return;
+    list.innerHTML = '';
+    (config.countdowns ?? []).forEach(cd => {
+      const item = document.createElement('div');
+      item.className = 'cd-item';
+      const dateLabel = cd.targetDate
+        ? new Date(cd.targetDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'No date';
+      item.innerHTML =
+        `<div class="cd-dot" style="background:${cd.color || '#C9A96E'}"></div>` +
+        `<div class="cd-item-info">` +
+          `<div class="cd-item-title">${escHtml(cd.title || 'Untitled')}</div>` +
+          `<div class="cd-item-date">${escHtml(dateLabel)}</div>` +
+        `</div>` +
+        `<button class="cd-btn cd-edit" data-id="${cd.id}">Edit</button>` +
+        `<button class="cd-btn cd-del"  data-id="${cd.id}">&#10005;</button>`;
+      list.appendChild(item);
+    });
+
+    list.querySelectorAll('.cd-edit').forEach(btn => {
+      btn.addEventListener('click', () => openForm(btn.dataset.id));
+    });
+    list.querySelectorAll('.cd-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        config.countdowns = (config.countdowns ?? []).filter(c => c.id !== btn.dataset.id);
+        document.getElementById(`cdw-${btn.dataset.id}`)?.remove();
+        renderCdList();
+        try { await hb.saveCountdowns(config.countdowns); }
+        catch (err) { console.error('[CD] delete failed:', err.message); }
+      });
+    });
+  }
+
+  // ── Countdown form ──
+  const form    = document.getElementById('cd-form');
+  const addRow  = document.getElementById('cd-add-row');
+  const colorIn = document.getElementById('cd-color');
+  const colorLb = document.getElementById('cd-color-label');
+  if (colorIn) colorIn.addEventListener('input', () => { if (colorLb) colorLb.textContent = colorIn.value; });
+
+  function openForm(editId) {
+    form.classList.remove('hidden');
+    addRow.classList.add('hidden');
+    document.getElementById('cd-edit-id').value = editId || '';
+    if (editId) {
+      const cd = (config.countdowns ?? []).find(c => c.id === editId);
+      if (cd) {
+        document.getElementById('cd-title').value = cd.title || '';
+        document.getElementById('cd-date').value  = cd.targetDate || '';
+        if (colorIn) { colorIn.value = cd.color || '#C9A96E'; if (colorLb) colorLb.textContent = colorIn.value; }
+      }
+    } else {
+      document.getElementById('cd-title').value = '';
+      document.getElementById('cd-date').value  = '';
+      if (colorIn) { colorIn.value = '#C9A96E'; if (colorLb) colorLb.textContent = '#C9A96E'; }
+    }
+  }
+
+  function closeForm() {
+    form.classList.add('hidden');
+    addRow.classList.remove('hidden');
+  }
+
+  document.getElementById('cd-add-btn')?.addEventListener('click', () => openForm(null));
+  document.getElementById('cd-cancel-btn')?.addEventListener('click', closeForm);
+
+  document.getElementById('cd-save-btn')?.addEventListener('click', async () => {
+    const title = document.getElementById('cd-title').value.trim();
+    const date  = document.getElementById('cd-date').value;
+    const color = colorIn?.value || '#C9A96E';
+    if (!title || !date) return;
+
+    const editId = document.getElementById('cd-edit-id').value;
+    config.countdowns = config.countdowns ?? [];
+
+    if (editId) {
+      const idx = config.countdowns.findIndex(c => c.id === editId);
+      if (idx !== -1) {
+        config.countdowns[idx] = { ...config.countdowns[idx], title, targetDate: date, color };
+        // Update on-screen widget
+        const el = document.getElementById(`cdw-${editId}`);
+        if (el) {
+          el.style.setProperty('--cdw-color', color);
+          updateCountdownDisplay(el, config.countdowns[idx]);
+        }
+      }
+    } else {
+      const newCd = {
+        id: 'cd_' + Date.now().toString(36),
+        title, targetDate: date, color, enabled: true,
+        top: 200 + config.countdowns.length * 20,
+        left: 100 + config.countdowns.length * 20,
+      };
+      config.countdowns.push(newCd);
+      createCountdownWidget(newCd);
+    }
+
+    closeForm();
+    renderCdList();
+    try { await hb.saveCountdowns(config.countdowns); }
+    catch (err) { console.error('[CD] save failed:', err.message); }
+  });
+}

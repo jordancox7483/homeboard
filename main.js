@@ -291,6 +291,26 @@ function startExpressServer() {
     }
   });
 
+  expressApp.post('/api/widget-visibility', require('express').json(), (req, res) => {
+    log('Express: POST /api/widget-visibility', JSON.stringify(req.body));
+    try {
+      const cfg = loadConfig();
+      cfg.widgetVisibility = { ...(cfg.widgetVisibility ?? {}), ...req.body };
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+      res.json({ ok: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+
+  expressApp.post('/api/countdowns', require('express').json(), (req, res) => {
+    log('Express: POST /api/countdowns');
+    try {
+      const cfg = loadConfig();
+      cfg.countdowns = req.body;
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+      res.json({ ok: true });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+  });
+
   expressApp.post('/api/widget-config', require('express').json(), (req, res) => {
     log('Express: POST /api/widget-config', JSON.stringify(req.body));
     try {
@@ -439,6 +459,22 @@ ipcMain.handle('save-calendar-config', (_e, calendarPanel) => {
 });
 
 ipcMain.handle('geocode', (_e, query) => geocodeLocation(query));
+
+ipcMain.handle('save-widget-visibility', (_e, v) => {
+  log('IPC: save-widget-visibility', JSON.stringify(v));
+  const cfg = loadConfig();
+  cfg.widgetVisibility = { ...(cfg.widgetVisibility ?? {}), ...v };
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+  return true;
+});
+
+ipcMain.handle('save-countdowns', (_e, countdowns) => {
+  log('IPC: save-countdowns count:', countdowns.length);
+  const cfg = loadConfig();
+  cfg.countdowns = countdowns;
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+  return true;
+});
 
 ipcMain.handle('save-weather-config', (_e, weather) => {
   log('IPC: save-weather-config', JSON.stringify(weather));
